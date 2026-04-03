@@ -1,0 +1,597 @@
+'use client';
+
+import React, { useEffect, useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
+import {
+  Brain,
+  Clock3,
+  Filter,
+  FolderStack,
+  Lightbulb,
+  Plus,
+  Search,
+  Sparkles,
+  Trash2,
+  X,
+} from 'lucide-react';
+
+// MVP de página única para o app Pilha.
+// Pode ser usado como app/page.tsx em um projeto Next.js no Vercel.
+// Não depende de backend e salva tudo no localStorage.
+
+type Idea = {
+  id: string;
+  text: string;
+  createdAt: string;
+  category: string;
+  confidence: 'alta' | 'media' | 'baixa';
+  source: 'manual';
+};
+
+type TimeFilter = 'all' | 'today' | '7d' | 'meeting';
+
+type MeetingSession = {
+  id: string;
+  name: string;
+  startAt: string;
+  endAt?: string;
+};
+
+const STORAGE_KEY = 'pilha:v1:ideas';
+const SESSION_KEY = 'pilha:v1:sessions';
+
+const CATEGORY_RULES: Array<{ category: string; keywords: string[] }> = [
+  {
+    category: 'Produto',
+    keywords: ['produto', 'feature', 'funcionalidade', 'app', 'ux', 'ui', 'usuário', 'usuario', 'mvp'],
+  },
+  {
+    category: 'Negócio',
+    keywords: ['negócio', 'negocio', 'venda', 'receita', 'preço', 'preco', 'cliente', 'mercado', 'oferta'],
+  },
+  {
+    category: 'Operação',
+    keywords: ['processo', 'operação', 'operacao', 'fluxo', 'time', 'equipe', 'handoff', 'rotina'],
+  },
+  {
+    category: 'Conteúdo',
+    keywords: ['conteúdo', 'conteudo', 'post', 'roteiro', 'texto', 'copy', 'mensagem', 'campanha'],
+  },
+  {
+    category: 'Pessoal',
+    keywords: ['lembrete', 'vida', 'família', 'familia', 'saúde', 'saude', 'casa', 'filhos'],
+  },
+  {
+    category: 'Projeto',
+    keywords: ['projeto', 'roadmap', 'entrega', 'sprint', 'tarefa', 'prioridade', 'escopo'],
+  },
+];
+
+function normalize(text: string) {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+function inferCategory(text: string): { category: string; confidence: Idea['confidence'] } {
+  const normalized = normalize(text);
+
+  let bestCategory = 'Soltas';
+  let bestScore = 0;
+
+  for (const rule of CATEGORY_RULES) {
+    let score = 0;
+    for (const keyword of rule.keywords) {
+      if (normalized.includes(normalize(keyword))) score += 1;
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestCategory = rule.category;
+    }
+  }
+
+  if (bestScore >= 2) return { category: bestCategory, confidence: 'alta' };
+  if (bestScore === 1) return { category: bestCategory, confidence: 'media' };
+  return { category: 'Soltas', confidence: 'baixa' };
+}
+
+function formatDate(date: string) {
+  return new Intl.DateTimeFormat('pt-BR', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(new Date(date));
+}
+
+function isToday(date: string) {
+  const d = new Date(date);
+  const now = new Date();
+  return (
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate()
+  );
+}
+
+function isWithinDays(date: string, days: number) {
+  const d = new Date(date).getTime();
+  const now = Date.now();
+  const diff = now - d;
+  return diff <= days * 24 * 60 * 60 * 1000;
+}
+
+function isInsideSession(date: string, session?: MeetingSession | null) {
+  if (!session) return true;
+  const target = new Date(date).getTime();
+  const start = new Date(session.startAt).getTime();
+  const end = session.endAt ? new Date(session.endAt).getTime() : Date.now();
+  return target >= start && target <= end;
+}
+
+export default function PilhaPage() {
+  const [ideas, setIdeas] = useState<Idea[]>([]);
+  const [input, setInput] = useState('');
+  const [search, setSearch] = useState('');
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
+  const [selectedCategory, setSelectedCategory] = useState('Todas');
+  const [sessions, setSessions] = useState<MeetingSession[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string>('');
+  const [sessionName, setSessionName] = useState('');
+
+  useEffect(() => {
+    try {
+      const savedIdeas = localStorage.getItem(STORAGE_KEY);
+      const savedSessions = localStorage.getItem(SESSION_KEY);
+      if (savedIdeas) setIdeas(JSON.parse(savedIdeas));
+      if (savedSessions) setSessions(JSON.parse(savedSessions));
+    } catch (error) {
+      console.error('Erro ao carregar dados locais', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(ideas));
+  }, [ideas]);
+
+  useEffect(() => {
+    localStorage.setItem(SESSION_KEY, JSON.stringify(sessions));
+  }, [sessions]);
+
+  const activeSession = useMemo(
+    () => sessions.find((session) => session.id === activeSessionId) ?? null,
+    [sessions, activeSessionId],
+  );
+
+  const categories = useMemo(() => {
+    const unique = new Set(ideas.map((idea) => idea.category));
+    return ['Todas', ...Array.from(unique)];
+  }, [ideas]);
+
+  const filteredIdeas = useMemo(() => {
+    let result = [...ideas].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+
+    if (search.trim()) {
+      const term = normalize(search);
+      result = result.filter((idea) => normalize(idea.text).includes(term));
+    }
+
+    if (selectedCategory !== 'Todas') {
+      result = result.filter((idea) => idea.category === selectedCategory);
+    }
+
+    if (timeFilter === 'today') {
+      result = result.filter((idea) => isToday(idea.createdAt));
+    }
+
+    if (timeFilter === '7d') {
+      result = result.filter((idea) => isWithinDays(idea.createdAt, 7));
+    }
+
+    if (timeFilter === 'meeting') {
+      result = result.filter((idea) => isInsideSession(idea.createdAt, activeSession));
+    }
+
+    return result;
+  }, [ideas, search, selectedCategory, timeFilter, activeSession]);
+
+  const groupedIdeas = useMemo(() => {
+    const groups = new Map<string, Idea[]>();
+
+    for (const idea of filteredIdeas) {
+      const current = groups.get(idea.category) ?? [];
+      current.push(idea);
+      groups.set(idea.category, current);
+    }
+
+    return Array.from(groups.entries()).sort((a, b) => b[1].length - a[1].length);
+  }, [filteredIdeas]);
+
+  const stats = useMemo(() => {
+    const total = ideas.length;
+    const today = ideas.filter((idea) => isToday(idea.createdAt)).length;
+    const week = ideas.filter((idea) => isWithinDays(idea.createdAt, 7)).length;
+    const categoriesCount = new Set(ideas.map((idea) => idea.category)).size;
+
+    return { total, today, week, categoriesCount };
+  }, [ideas]);
+
+  function addIdea() {
+    const trimmed = input.trim();
+    if (!trimmed) return;
+
+    const inference = inferCategory(trimmed);
+
+    const newIdea: Idea = {
+      id: crypto.randomUUID(),
+      text: trimmed,
+      createdAt: new Date().toISOString(),
+      category: inference.category,
+      confidence: inference.confidence,
+      source: 'manual',
+    };
+
+    setIdeas((current) => [newIdea, ...current]);
+    setInput('');
+  }
+
+  function deleteIdea(id: string) {
+    setIdeas((current) => current.filter((idea) => idea.id !== id));
+  }
+
+  function clearAll() {
+    const confirmed = window.confirm('Tem certeza que deseja apagar toda a pilha?');
+    if (!confirmed) return;
+    setIdeas([]);
+  }
+
+  function startSession() {
+    const name = sessionName.trim() || `Reunião ${new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date())}`;
+
+    const session: MeetingSession = {
+      id: crypto.randomUUID(),
+      name,
+      startAt: new Date().toISOString(),
+    };
+
+    setSessions((current) => [session, ...current]);
+    setActiveSessionId(session.id);
+    setTimeFilter('meeting');
+    setSessionName('');
+  }
+
+  function endSession() {
+    if (!activeSessionId) return;
+
+    setSessions((current) =>
+      current.map((session) =>
+        session.id === activeSessionId
+          ? { ...session, endAt: new Date().toISOString() }
+          : session,
+      ),
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-100">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+          <div className="space-y-6">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur"
+            >
+              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-slate-300">
+                    <FolderStack className="h-4 w-4" />
+                    Pilha
+                  </div>
+                  <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+                    Uma pilha viva de pensamentos soltos
+                  </h1>
+                  <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">
+                    Capture ideias no momento em que elas surgem. O app organiza depois, por tempo e por tema.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <StatCard label="Total" value={stats.total} icon={<Brain className="h-4 w-4" />} />
+                  <StatCard label="Hoje" value={stats.today} icon={<Clock3 className="h-4 w-4" />} />
+                  <StatCard label="7 dias" value={stats.week} icon={<Sparkles className="h-4 w-4" />} />
+                  <StatCard label="Temas" value={stats.categoriesCount} icon={<FolderStack className="h-4 w-4" />} />
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05 }}
+              className="rounded-3xl border border-white/10 bg-white/5 p-4 shadow-2xl backdrop-blur"
+            >
+              <div className="mb-3 flex items-center gap-2 text-sm text-slate-300">
+                <Lightbulb className="h-4 w-4" />
+                Captura rápida
+              </div>
+
+              <div className="space-y-3">
+                <textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') addIdea();
+                  }}
+                  placeholder="Jogue aqui uma ideia solta. Não precisa organizar nada agora."
+                  className="min-h-[140px] w-full rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-4 text-sm outline-none ring-0 placeholder:text-slate-500 focus:border-slate-500"
+                />
+
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-xs text-slate-400">
+                    Dica: use Cmd/Ctrl + Enter para guardar rápido.
+                  </p>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setInput('')}
+                      className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-200 transition hover:bg-white/10"
+                    >
+                      <X className="h-4 w-4" />
+                      Limpar
+                    </button>
+                    <button
+                      onClick={addIdea}
+                      className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-2 text-sm font-medium text-slate-950 transition hover:scale-[1.01]"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Empilhar ideia
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="rounded-3xl border border-white/10 bg-white/5 p-4 shadow-2xl backdrop-blur"
+            >
+              <div className="mb-4 flex items-center gap-2 text-sm text-slate-300">
+                <Filter className="h-4 w-4" />
+                Visualização e filtros
+              </div>
+
+              <div className="grid gap-3 lg:grid-cols-[1.2fr_0.8fr_0.8fr]">
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-slate-500" />
+                  <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Buscar uma ideia"
+                    className="w-full rounded-2xl border border-white/10 bg-slate-900/80 py-3 pl-10 pr-4 text-sm outline-none placeholder:text-slate-500 focus:border-slate-500"
+                  />
+                </div>
+
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-sm outline-none focus:border-slate-500"
+                >
+                  {categories.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={timeFilter}
+                  onChange={(e) => setTimeFilter(e.target.value as TimeFilter)}
+                  className="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-sm outline-none focus:border-slate-500"
+                >
+                  <option value="all">Tudo</option>
+                  <option value="today">Hoje</option>
+                  <option value="7d">Últimos 7 dias</option>
+                  <option value="meeting">Dentro de reunião</option>
+                </select>
+              </div>
+            </motion.div>
+
+            <div className="space-y-4">
+              {groupedIdeas.length === 0 ? (
+                <div className="rounded-3xl border border-dashed border-white/10 bg-white/5 p-8 text-center text-slate-400">
+                  Sua pilha está vazia ou nenhum item bate com os filtros atuais.
+                </div>
+              ) : (
+                groupedIdeas.map(([category, group]) => (
+                  <motion.div
+                    key={category}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="rounded-3xl border border-white/10 bg-white/5 p-4 shadow-2xl backdrop-blur"
+                  >
+                    <div className="mb-4 flex items-center justify-between">
+                      <div>
+                        <h2 className="text-lg font-semibold">{category}</h2>
+                        <p className="text-sm text-slate-400">
+                          {group.length} {group.length === 1 ? 'ideia' : 'ideias'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {group.map((idea) => (
+                        <div
+                          key={idea.id}
+                          className="rounded-2xl border border-white/10 bg-slate-900/70 p-4"
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="space-y-2">
+                              <p className="text-sm leading-6 text-slate-100">{idea.text}</p>
+                              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                                <span className="rounded-full border border-white/10 px-2 py-1">
+                                  {formatDate(idea.createdAt)}
+                                </span>
+                                <span className="rounded-full border border-white/10 px-2 py-1">
+                                  confiança {idea.confidence}
+                                </span>
+                                <span className="rounded-full border border-white/10 px-2 py-1">
+                                  {idea.source}
+                                </span>
+                              </div>
+                            </div>
+
+                            <button
+                              onClick={() => deleteIdea(idea.id)}
+                              className="rounded-xl border border-white/10 bg-white/5 p-2 text-slate-300 transition hover:bg-white/10"
+                              aria-label="Apagar ideia"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.12 }}
+              className="rounded-3xl border border-white/10 bg-white/5 p-4 shadow-2xl backdrop-blur"
+            >
+              <div className="mb-3 flex items-center gap-2 text-sm text-slate-300">
+                <Clock3 className="h-4 w-4" />
+                Modo reunião
+              </div>
+
+              <div className="space-y-3">
+                <input
+                  value={sessionName}
+                  onChange={(e) => setSessionName(e.target.value)}
+                  placeholder="Nome da reunião"
+                  className="w-full rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-sm outline-none placeholder:text-slate-500 focus:border-slate-500"
+                />
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={startSession}
+                    className="rounded-2xl bg-white px-4 py-3 text-sm font-medium text-slate-950 transition hover:scale-[1.01]"
+                  >
+                    Iniciar sessão
+                  </button>
+                  <button
+                    onClick={endSession}
+                    className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-100 transition hover:bg-white/10"
+                  >
+                    Encerrar
+                  </button>
+                </div>
+
+                <select
+                  value={activeSessionId}
+                  onChange={(e) => setActiveSessionId(e.target.value)}
+                  className="w-full rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-sm outline-none focus:border-slate-500"
+                >
+                  <option value="">Selecione uma sessão</option>
+                  {sessions.map((session) => (
+                    <option key={session.id} value={session.id}>
+                      {session.name}
+                    </option>
+                  ))}
+                </select>
+
+                {activeSession ? (
+                  <div className="rounded-2xl border border-white/10 bg-slate-900/70 p-4 text-sm text-slate-300">
+                    <p className="font-medium text-slate-100">{activeSession.name}</p>
+                    <p className="mt-1">Início: {formatDate(activeSession.startAt)}</p>
+                    <p>
+                      Fim:{' '}
+                      {activeSession.endAt ? formatDate(activeSession.endAt) : 'em andamento'}
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.16 }}
+              className="rounded-3xl border border-white/10 bg-white/5 p-4 shadow-2xl backdrop-blur"
+            >
+              <div className="mb-3 flex items-center gap-2 text-sm text-slate-300">
+                <Sparkles className="h-4 w-4" />
+                Consolidação simples
+              </div>
+
+              <div className="space-y-3">
+                {groupedIdeas.slice(0, 5).map(([category, group]) => (
+                  <div
+                    key={category}
+                    className="rounded-2xl border border-white/10 bg-slate-900/70 p-4"
+                  >
+                    <div className="mb-2 flex items-center justify-between">
+                      <h3 className="font-medium text-slate-100">{category}</h3>
+                      <span className="text-xs text-slate-400">{group.length}</span>
+                    </div>
+                    <p className="text-sm leading-6 text-slate-300">
+                      {group.slice(0, 2).map((item) => item.text).join(' • ')}
+                    </p>
+                  </div>
+                ))}
+
+                {groupedIdeas.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-white/10 p-4 text-sm text-slate-400">
+                    Conforme você empilha ideias, esta área começa a mostrar agrupamentos.
+                  </div>
+                ) : null}
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="rounded-3xl border border-white/10 bg-white/5 p-4 shadow-2xl backdrop-blur"
+            >
+              <div className="mb-3 text-sm text-slate-300">Ações</div>
+              <button
+                onClick={clearAll}
+                className="w-full rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200 transition hover:bg-red-500/20"
+              >
+                Apagar toda a pilha
+              </button>
+            </motion.div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value: number;
+  icon: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-slate-900/70 p-3">
+      <div className="mb-2 flex items-center gap-2 text-xs text-slate-400">{icon}{label}</div>
+      <div className="text-xl font-semibold text-slate-100">{value}</div>
+    </div>
+  );
+}
