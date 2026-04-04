@@ -2,364 +2,287 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Pilha</title>
-  <meta name="description" content="Uma pilha viva de pensamentos soltos" />
+  <meta name="description" content="Pilha - pensamentos soltos, organizados depois." />
   <style>
     :root {
-      --bg: #06101f;
-      --bg-2: #020817;
-      --panel: rgba(255, 255, 255, 0.06);
-      --panel-strong: rgba(9, 15, 31, 0.88);
-      --panel-soft: rgba(255, 255, 255, 0.04);
-      --border: rgba(255, 255, 255, 0.10);
-      --border-strong: rgba(255, 255, 255, 0.14);
-      --text: #f8fbff;
-      --muted: #8fa3c7;
-      --muted-2: #c9d7f2;
-      --white: #ffffff;
-      --primary: #7dd3fc;
+      --bg: #07101d;
+      --bg-2: #0d1a2e;
+      --panel: rgba(255,255,255,0.07);
+      --panel-strong: rgba(8,14,26,0.88);
+      --panel-soft: rgba(255,255,255,0.05);
+      --border: rgba(255,255,255,0.10);
+      --text: #f5f8ff;
+      --muted: #91a3c5;
+      --muted-2: #d0dbf5;
+      --primary: #79d7ff;
       --primary-2: #a78bfa;
-      --danger: rgba(239, 68, 68, 0.14);
-      --danger-border: rgba(239, 68, 68, 0.24);
-      --success: rgba(74, 222, 128, 0.18);
-      --success-border: rgba(74, 222, 128, 0.26);
-      --shadow: 0 30px 80px rgba(0, 0, 0, 0.38);
-      --shadow-soft: 0 16px 40px rgba(0, 0, 0, 0.24);
-      --radius-xl: 30px;
-      --radius-lg: 20px;
-      --radius-md: 14px;
-      --radius-sm: 12px;
-      --glow: radial-gradient(circle at top left, rgba(125, 211, 252, 0.18), transparent 35%),
-              radial-gradient(circle at top right, rgba(167, 139, 250, 0.16), transparent 30%);
+      --success: #34d399;
+      --danger: #fb7185;
+      --shadow: 0 24px 80px rgba(0,0,0,0.38);
+      --radius-xl: 28px;
+      --radius-lg: 22px;
+      --radius-md: 16px;
+      --safe-top: max(18px, env(safe-area-inset-top));
+      --safe-bottom: max(18px, env(safe-area-inset-bottom));
     }
 
-    * { box-sizing: border-box; }
-
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html, body {
       margin: 0;
-      padding: 0;
       min-height: 100%;
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: radial-gradient(circle at top, #13203a 0%, #081120 35%, #020817 70%);
+      background:
+        radial-gradient(circle at top, rgba(121,215,255,0.18), transparent 30%),
+        radial-gradient(circle at top right, rgba(167,139,250,0.16), transparent 24%),
+        linear-gradient(180deg, #11203a 0%, #08111f 28%, #050b16 100%);
       color: var(--text);
     }
 
-    body { min-height: 100vh; }
+    body { padding: 0; }
 
-    .container {
-      max-width: 1280px;
+    .shell {
+      max-width: 430px;
+      min-height: 100vh;
       margin: 0 auto;
-      padding: 28px;
-    }
-
-    .layout {
-      display: grid;
-      grid-template-columns: 1.28fr 0.8fr;
-      gap: 24px;
-      align-items: start;
-    }
-
-    .panel {
       position: relative;
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-xl);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(20px);
-      overflow: hidden;
-      animation: fadeUp 0.35s ease;
+      padding: var(--safe-top) 16px calc(104px + var(--safe-bottom));
     }
 
-    .panel::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: var(--glow);
-      pointer-events: none;
-      opacity: 0.8;
-    }
+    .screen { display: none; animation: fadeUp 0.22s ease; }
+    .screen.active { display: block; }
 
-    .panel-inner,
-    .hero {
-      position: relative;
-      z-index: 1;
-    }
-
-    .panel-inner { padding: 22px; }
-    .hero { padding: 28px; }
-
-    .hero-top {
+    .topbar {
       display: flex;
       justify-content: space-between;
-      gap: 24px;
       align-items: flex-start;
+      margin-bottom: 18px;
+      gap: 12px;
     }
 
-    .badge {
+    .eyebrow {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      border: 1px solid var(--border-strong);
-      background: rgba(255,255,255,0.06);
-      color: var(--muted-2);
-      padding: 9px 14px;
+      padding: 8px 12px;
       border-radius: 999px;
-      font-size: 14px;
-      margin-bottom: 16px;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
-    }
-
-    h1 {
-      margin: 0;
-      font-size: 44px;
-      line-height: 1;
-      letter-spacing: -0.04em;
-      max-width: 760px;
-    }
-
-    .hero p {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid var(--border);
       color: var(--muted-2);
-      max-width: 760px;
-      line-height: 1.7;
-      margin-top: 16px;
-      margin-bottom: 0;
-      font-size: 15px;
+      font-size: 13px;
+      margin-bottom: 12px;
     }
 
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(120px, 1fr));
-      gap: 12px;
-      min-width: 280px;
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: 34px; line-height: 0.98; letter-spacing: -0.04em; }
+    h2 { font-size: 22px; letter-spacing: -0.03em; }
+    h3 { font-size: 16px; letter-spacing: -0.02em; }
+
+    .subtitle {
+      margin-top: 10px;
+      color: var(--muted-2);
+      font-size: 14px;
+      line-height: 1.6;
+      max-width: 260px;
     }
 
-    .stat {
+    .glass {
       background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
       border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 16px;
-      box-shadow: var(--shadow-soft);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(20px);
     }
 
-    .stat-label {
-      font-size: 12px;
+    .card {
+      border-radius: var(--radius-xl);
+      padding: 16px;
+      margin-bottom: 14px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-card {
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+
+    .hero-preview {
+      margin-top: 16px;
+      padding: 14px;
+      border-radius: 20px;
+      background: rgba(7, 13, 24, 0.7);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .hero-preview .label,
+    .section-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
       color: var(--muted);
       margin-bottom: 8px;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
     }
 
-    .stat-value {
-      font-size: 28px;
-      font-weight: 700;
-      letter-spacing: -0.03em;
+    textarea, input, select, button {
+      font: inherit;
     }
-
-    .section-title {
-      font-size: 13px;
-      color: var(--muted-2);
-      margin-bottom: 14px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-
-    textarea, input, select, button { font: inherit; }
 
     textarea, input, select {
       width: 100%;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(8, 14, 28, 0.9);
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(6, 12, 23, 0.88);
       color: var(--text);
-      border-radius: 18px;
+      border-radius: 20px;
       padding: 15px 16px;
       outline: none;
-      transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
-    }
-
-    textarea::placeholder, input::placeholder { color: #7186ad; }
-
-    textarea:focus, input:focus, select:focus {
-      border-color: rgba(125, 211, 252, 0.5);
-      box-shadow: 0 0 0 4px rgba(125, 211, 252, 0.08);
-    }
-
-    textarea {
-      min-height: 160px;
-      resize: vertical;
-      line-height: 1.55;
-    }
-
-    .hint { font-size: 12px; color: var(--muted); }
-
-    .actions-row,
-    .row-between {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      align-items: center;
-    }
-
-    .btn-group {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    button {
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.06);
-      color: var(--text);
-      padding: 12px 16px;
-      border-radius: 16px;
-      cursor: pointer;
       transition: 0.18s ease;
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
     }
 
-    button:hover {
-      transform: translateY(-1px);
-      background: rgba(255,255,255,0.09);
+    textarea:focus, input:focus, select:focus {
+      border-color: rgba(121,215,255,0.45);
+      box-shadow: 0 0 0 4px rgba(121,215,255,0.08);
     }
 
-    .btn-primary {
-      background: linear-gradient(135deg, var(--primary), var(--primary-2));
-      color: #07111f;
-      border-color: transparent;
-      font-weight: 700;
-      box-shadow: 0 10px 30px rgba(125, 211, 252, 0.22);
+    textarea {
+      min-height: 220px;
+      resize: none;
+      line-height: 1.55;
+      font-size: 16px;
     }
 
-    .btn-primary:hover { filter: brightness(1.04); }
+    textarea::placeholder, input::placeholder { color: #7186ad; }
 
-    .btn-success {
-      background: var(--success);
-      border-color: var(--success-border);
-      color: #dcfce7;
+    .composer-card {
+      padding: 18px;
     }
 
-    .btn-danger {
-      background: var(--danger);
-      border-color: var(--danger-border);
-      color: #fecaca;
-      width: 100%;
-    }
-
-    .grid-3 {
+    .composer-actions {
       display: grid;
-      grid-template-columns: 1.2fr 0.8fr 0.8fr;
-      gap: 12px;
-    }
-
-    .stack {
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-    }
-
-    .group-card { padding: 18px; }
-
-    .group-head {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 16px;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      margin-top: 12px;
       align-items: center;
     }
 
-    .group-title {
-      font-size: 20px;
-      font-weight: 700;
-      margin: 0;
-      letter-spacing: -0.02em;
-    }
-
-    .group-sub {
+    .hint {
       color: var(--muted);
-      font-size: 14px;
-      margin-top: 4px;
+      font-size: 12px;
+      line-height: 1.45;
     }
 
-    .idea-list {
+    button {
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      border-radius: 18px;
+      padding: 14px 16px;
+      cursor: pointer;
+      transition: 0.18s ease;
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-2));
+      border-color: transparent;
+      color: #06101d;
+      font-weight: 700;
+      box-shadow: 0 10px 30px rgba(121,215,255,0.24);
+    }
+
+    .btn-soft { background: rgba(255,255,255,0.06); }
+    .btn-danger { color: #fecdd3; background: rgba(251,113,133,0.14); }
+    .btn-success { color: #d1fae5; background: rgba(52,211,153,0.14); }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .stat {
+      padding: 14px;
+      border-radius: 20px;
+      background: rgba(6, 12, 23, 0.7);
+      border: 1px solid rgba(255,255,255,0.07);
+    }
+
+    .stat .value {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin-top: 6px;
+    }
+
+    .stat .name {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .filter-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .stack-list {
       display: flex;
       flex-direction: column;
       gap: 12px;
     }
 
-    .idea-card {
-      background: linear-gradient(180deg, rgba(10, 17, 33, 0.96), rgba(8, 14, 28, 0.9));
-      border: 1px solid rgba(255,255,255,0.09);
-      border-radius: 20px;
+    .note-card {
       padding: 16px;
-      box-shadow: var(--shadow-soft);
-      transition: transform 0.15s ease, border-color 0.15s ease;
+      border-radius: 24px;
+      background: linear-gradient(180deg, rgba(8,14,26,0.95), rgba(8,14,26,0.82));
+      border: 1px solid rgba(255,255,255,0.08);
       position: relative;
       overflow: hidden;
     }
 
-    .idea-card:hover {
-      transform: translateY(-1px);
-      border-color: rgba(125, 211, 252, 0.18);
-    }
-
-    .idea-card::after {
+    .note-card::before {
       content: "";
       position: absolute;
-      inset: 0 auto 0 0;
+      left: 0;
+      top: 0;
+      bottom: 0;
       width: 4px;
-      background: var(--category-color, rgba(255,255,255,0.08));
-      opacity: 0.95;
+      background: var(--category-color, #94a3b8);
     }
 
-    .idea-row {
+    .note-top {
       display: flex;
+      gap: 12px;
       justify-content: space-between;
       align-items: flex-start;
-      gap: 16px;
     }
 
-    .idea-main {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .idea-text {
-      margin: 0;
-      line-height: 1.7;
-      color: var(--text);
+    .note-text {
       white-space: pre-wrap;
       word-break: break-word;
+      line-height: 1.65;
       font-size: 15px;
+      padding-right: 4px;
     }
 
-    .meta {
+    .note-actions {
       display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 12px;
-    }
-
-    .chip {
-      border: 1px solid rgba(255,255,255,0.09);
-      background: rgba(255,255,255,0.03);
-      padding: 6px 10px;
-      border-radius: 999px;
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    .chip-category {
-      color: var(--text);
-      border-color: transparent;
-      background: var(--category-soft, rgba(255,255,255,0.08));
-    }
-
-    .idea-actions {
-      display: flex;
+      flex-direction: column;
       gap: 8px;
       flex-shrink: 0;
     }
@@ -367,211 +290,272 @@
     .icon-btn {
       width: 40px;
       height: 40px;
-      display: inline-grid;
-      place-items: center;
-      border-radius: 12px;
-      flex-shrink: 0;
       padding: 0;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
     }
 
-    .empty {
-      padding: 38px;
-      text-align: center;
-      color: var(--muted);
-      border: 1px dashed rgba(255,255,255,0.12);
-      border-radius: var(--radius-xl);
-      background: rgba(255,255,255,0.03);
-    }
-
-    .side-stack {
+    .chips {
       display: flex;
-      flex-direction: column;
-      gap: 24px;
-      position: sticky;
-      top: 24px;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
     }
 
-    .mini-card {
-      background: linear-gradient(180deg, rgba(10, 17, 33, 0.95), rgba(8, 14, 28, 0.88));
+    .chip {
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      color: var(--muted);
+      background: rgba(255,255,255,0.04);
       border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 18px;
+    }
+
+    .chip.category {
+      color: var(--text);
+      background: var(--category-soft, rgba(255,255,255,0.08));
+      border-color: transparent;
+    }
+
+    .mini {
       padding: 14px;
-      box-shadow: var(--shadow-soft);
+      border-radius: 20px;
+      background: rgba(6,12,23,0.72);
+      border: 1px solid rgba(255,255,255,0.08);
     }
 
-    .mini-card h3 {
-      margin: 0 0 8px;
-      font-size: 16px;
-      letter-spacing: -0.02em;
-    }
-
-    .mini-card p {
-      margin: 0;
+    .mini p {
+      margin-top: 8px;
       color: var(--muted-2);
-      line-height: 1.6;
+      line-height: 1.55;
       font-size: 14px;
     }
 
-    .session-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
-    .spacer-sm { height: 12px; }
-    .hidden { display: none !important; }
-
-    .toolbar-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
-    .footer-note {
-      margin-top: 6px;
-      font-size: 12px;
+    .empty {
+      border: 1px dashed rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.03);
+      border-radius: 24px;
       color: var(--muted);
-      line-height: 1.5;
+      text-align: center;
+      padding: 28px 18px;
+      line-height: 1.6;
     }
+
+    .bottom-nav {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: calc(12px + env(safe-area-inset-bottom));
+      width: min(398px, calc(100vw - 20px));
+      padding: 10px;
+      border-radius: 28px;
+      background: rgba(9,15,28,0.84);
+      border: 1px solid rgba(255,255,255,0.10);
+      backdrop-filter: blur(20px);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      z-index: 30;
+      box-shadow: 0 18px 50px rgba(0,0,0,0.34);
+    }
+
+    .tab-btn {
+      padding: 12px 8px;
+      border-radius: 20px;
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      letter-spacing: 0.02em;
+    }
+
+    .tab-btn.active {
+      color: var(--text);
+      background: rgba(255,255,255,0.08);
+    }
+
+    .tab-icon { font-size: 18px; line-height: 1; }
+
+    .session-grid, .toolbar-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .session-card {
+      margin-top: 12px;
+      padding: 14px;
+      border-radius: 20px;
+      background: rgba(6,12,23,0.72);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .session-card p {
+      margin-top: 6px;
+      color: var(--muted-2);
+      font-size: 14px;
+    }
+
+    .hidden { display: none !important; }
 
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(8px); }
       to { opacity: 1; transform: translateY(0); }
     }
-
-    @media (max-width: 980px) {
-      .layout { grid-template-columns: 1fr; }
-      .side-stack { position: static; }
-      .hero-top { flex-direction: column; }
-      .stats { width: 100%; min-width: 0; }
-      .grid-3 { grid-template-columns: 1fr; }
-    }
-
-    @media (max-width: 640px) {
-      .container { padding: 16px; }
-      h1 { font-size: 32px; }
-      .actions-row, .row-between, .session-grid, .toolbar-grid {
-        flex-direction: column;
-        display: flex;
-        align-items: stretch;
-      }
-      .btn-group { width: 100%; }
-      .btn-group button { flex: 1; }
-      .idea-row { flex-direction: column; }
-      .idea-actions { width: 100%; }
-      .idea-actions button { flex: 1; width: 100%; }
-      .stats { grid-template-columns: repeat(2, 1fr); }
-    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="layout">
-      <main class="stack">
-        <section class="panel hero">
-          <div class="hero-top">
-            <div>
-              <div class="badge">🧠 Pilha</div>
-              <h1>Uma pilha viva de pensamentos soltos</h1>
-              <p>
-                Capture ideias no momento em que elas surgem. O app organiza depois,
-                por tempo, tema e contexto.
-              </p>
-            </div>
+  <div class="shell">
+    <section class="screen active" data-screen="home">
+      <div class="topbar">
+        <div>
+          <div class="eyebrow">🧠 Pilha</div>
+          <h1>Guarde antes de esquecer.</h1>
+          <p class="subtitle">Uma entrada rápida para despejar pensamentos sem precisar organizar nada agora.</p>
+        </div>
+      </div>
 
-            <div class="stats">
-              <div class="stat">
-                <div class="stat-label">Total</div>
-                <div class="stat-value" id="stat-total">0</div>
-              </div>
-              <div class="stat">
-                <div class="stat-label">Hoje</div>
-                <div class="stat-value" id="stat-today">0</div>
-              </div>
-              <div class="stat">
-                <div class="stat-label">7 dias</div>
-                <div class="stat-value" id="stat-week">0</div>
-              </div>
-              <div class="stat">
-                <div class="stat-label">Temas</div>
-                <div class="stat-value" id="stat-categories">0</div>
-              </div>
-            </div>
+      <div class="glass card composer-card">
+        <div class="section-label">Nova nota</div>
+        <textarea id="idea-input" placeholder="Cole aqui um comentário, uma ideia, uma frase ou um pensamento solto..."></textarea>
+        <div class="composer-actions">
+          <div class="hint">Cmd/Ctrl + Enter salva rápido. A categorização acontece depois.</div>
+          <button id="add-idea-btn" class="btn-primary" type="button">Empilhar</button>
+        </div>
+      </div>
+
+      <div class="glass card hero-card">
+        <div class="section-head">
+          <div>
+            <div class="section-label">Última nota</div>
+            <h3 id="last-note-title">Sua pilha ainda está vazia</h3>
           </div>
-        </section>
-
-        <section class="panel panel-inner">
-          <div class="section-title">💡 Captura rápida</div>
-          <textarea
-            id="idea-input"
-            placeholder="Jogue aqui uma ideia solta. Não precisa organizar nada agora."
-          ></textarea>
-          <div class="spacer-sm"></div>
-          <div class="actions-row">
-            <div class="hint">Dica: use Ctrl/Cmd + Enter para guardar rápido.</div>
-            <div class="btn-group">
-              <button id="clear-input-btn" type="button">Limpar</button>
-              <button id="add-idea-btn" type="button" class="btn-primary">Empilhar ideia</button>
-            </div>
+        </div>
+        <div class="hero-preview" id="last-note-preview">
+          <div class="hint">Assim que você salvar algo, a última nota aparece aqui como prévia rápida.</div>
+        </div>
+        <div class="stats-row">
+          <div class="stat">
+            <div class="name">Total</div>
+            <div class="value" id="stat-total">0</div>
           </div>
-        </section>
-
-        <section class="panel panel-inner">
-          <div class="section-title">🔎 Visualização e filtros</div>
-          <div class="grid-3">
-            <input id="search-input" type="text" placeholder="Buscar uma ideia" />
-            <select id="category-filter"></select>
-            <select id="time-filter">
-              <option value="all">Tudo</option>
-              <option value="today">Hoje</option>
-              <option value="7d">Últimos 7 dias</option>
-              <option value="meeting">Dentro de reunião</option>
-            </select>
+          <div class="stat">
+            <div class="name">Hoje</div>
+            <div class="value" id="stat-today">0</div>
           </div>
-        </section>
-
-        <section id="ideas-root" class="stack"></section>
-      </main>
-
-      <aside class="side-stack">
-        <section class="panel panel-inner">
-          <div class="section-title">⏱️ Modo reunião</div>
-          <input id="session-name-input" type="text" placeholder="Nome da reunião" />
-          <div class="spacer-sm"></div>
-          <div class="session-grid">
-            <button id="start-session-btn" type="button" class="btn-primary">Iniciar sessão</button>
-            <button id="end-session-btn" type="button">Encerrar</button>
+          <div class="stat">
+            <div class="name">Temas</div>
+            <div class="value" id="stat-categories">0</div>
           </div>
-          <div class="spacer-sm"></div>
-          <select id="session-select">
-            <option value="">Selecione uma sessão</option>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="pilhas">
+      <div class="topbar">
+        <div>
+          <div class="eyebrow">📚 Pilhas</div>
+          <h2>Todas as notas</h2>
+          <p class="subtitle">Busque, filtre e revise suas pilhas por tema e por tempo.</p>
+        </div>
+      </div>
+
+      <div class="glass card">
+        <div class="filter-grid">
+          <input id="search-input" type="text" placeholder="Buscar nota" />
+          <select id="category-filter"></select>
+          <select id="time-filter">
+            <option value="all">Tudo</option>
+            <option value="today">Hoje</option>
+            <option value="7d">7 dias</option>
+            <option value="meeting">Reunião</option>
           </select>
-          <div class="spacer-sm"></div>
-          <div id="active-session-card" class="mini-card hidden"></div>
-        </section>
+          <select id="session-select">
+            <option value="">Sessão</option>
+          </select>
+        </div>
+        <div id="notes-root" class="stack-list"></div>
+      </div>
+    </section>
 
-        <section class="panel panel-inner">
-          <div class="section-title">✨ Consolidação simples</div>
-          <div id="consolidation-root" class="stack" style="gap:12px;"></div>
-        </section>
+    <section class="screen" data-screen="dashboard">
+      <div class="topbar">
+        <div>
+          <div class="eyebrow">✨ Dashboard</div>
+          <h2>Leitura rápida</h2>
+          <p class="subtitle">Uma visão compacta dos padrões que estão se formando na sua pilha.</p>
+        </div>
+      </div>
 
-        <section class="panel panel-inner">
-          <div class="section-title">⚙️ Ações</div>
-          <div class="toolbar-grid">
-            <button id="export-json-btn" type="button" class="btn-success">Exportar JSON</button>
-            <button id="clear-all-btn" type="button" class="btn-danger">Apagar tudo</button>
+      <div class="glass card">
+        <div class="section-head">
+          <h3>Resumo</h3>
+        </div>
+        <div class="stats-row" style="margin-top:0;">
+          <div class="stat">
+            <div class="name">Semana</div>
+            <div class="value" id="stat-week">0</div>
           </div>
-          <div class="footer-note">
-            Exporta suas ideias e sessões para backup ou análise futura.
+          <div class="stat">
+            <div class="name">Sessões</div>
+            <div class="value" id="stat-sessions">0</div>
           </div>
-        </section>
-      </aside>
-    </div>
+          <div class="stat">
+            <div class="name">Último dia</div>
+            <div class="value" id="stat-latest-day">-</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass card">
+        <div class="section-head"><h3>Temas mais fortes</h3></div>
+        <div id="consolidation-root" class="stack-list"></div>
+      </div>
+
+      <div class="glass card">
+        <div class="section-head"><h3>Modo reunião</h3></div>
+        <input id="session-name-input" type="text" placeholder="Nome da reunião" />
+        <div style="height:10px"></div>
+        <div class="session-grid">
+          <button id="start-session-btn" type="button" class="btn-primary">Iniciar</button>
+          <button id="end-session-btn" type="button" class="btn-soft">Encerrar</button>
+        </div>
+        <div id="active-session-card" class="session-card hidden"></div>
+      </div>
+
+      <div class="glass card">
+        <div class="section-head"><h3>Ações</h3></div>
+        <div class="toolbar-grid">
+          <button id="export-json-btn" type="button" class="btn-success">Exportar</button>
+          <button id="clear-all-btn" type="button" class="btn-danger">Apagar tudo</button>
+        </div>
+      </div>
+    </section>
   </div>
 
+  <nav class="bottom-nav">
+    <button class="tab-btn active" data-tab="home" type="button">
+      <span class="tab-icon">✍️</span>
+      <span>Capturar</span>
+    </button>
+    <button class="tab-btn" data-tab="pilhas" type="button">
+      <span class="tab-icon">🗂️</span>
+      <span>Pilhas</span>
+    </button>
+    <button class="tab-btn" data-tab="dashboard" type="button">
+      <span class="tab-icon">📊</span>
+      <span>Resumo</span>
+    </button>
+  </nav>
+
   <script>
-    const STORAGE_KEY = 'pilha:v2:ideas';
-    const SESSION_KEY = 'pilha:v2:sessions';
+    const STORAGE_KEY = 'pilha:v3:ideas';
+    const SESSION_KEY = 'pilha:v3:sessions';
 
     const CATEGORY_RULES = [
       { category: 'Produto', keywords: ['produto', 'feature', 'funcionalidade', 'app', 'ux', 'ui', 'usuario', 'usuário', 'mvp'] },
@@ -583,13 +567,13 @@
     ];
 
     const CATEGORY_COLORS = {
-      'Produto': { solid: '#38bdf8', soft: 'rgba(56, 189, 248, 0.15)' },
-      'Negócio': { solid: '#f59e0b', soft: 'rgba(245, 158, 11, 0.15)' },
-      'Operação': { solid: '#34d399', soft: 'rgba(52, 211, 153, 0.15)' },
-      'Conteúdo': { solid: '#a78bfa', soft: 'rgba(167, 139, 250, 0.15)' },
-      'Pessoal': { solid: '#fb7185', soft: 'rgba(251, 113, 133, 0.15)' },
-      'Projeto': { solid: '#22c55e', soft: 'rgba(34, 197, 94, 0.15)' },
-      'Soltas': { solid: '#94a3b8', soft: 'rgba(148, 163, 184, 0.15)' }
+      'Produto': { solid: '#38bdf8', soft: 'rgba(56, 189, 248, 0.16)' },
+      'Negócio': { solid: '#f59e0b', soft: 'rgba(245, 158, 11, 0.16)' },
+      'Operação': { solid: '#34d399', soft: 'rgba(52, 211, 153, 0.16)' },
+      'Conteúdo': { solid: '#a78bfa', soft: 'rgba(167, 139, 250, 0.16)' },
+      'Pessoal': { solid: '#fb7185', soft: 'rgba(251, 113, 133, 0.16)' },
+      'Projeto': { solid: '#22c55e', soft: 'rgba(34, 197, 94, 0.16)' },
+      'Soltas': { solid: '#94a3b8', soft: 'rgba(148, 163, 184, 0.16)' }
     };
 
     let ideas = [];
@@ -598,24 +582,24 @@
       search: '',
       selectedCategory: 'Todas',
       timeFilter: 'all',
-      activeSessionId: ''
+      activeSessionId: '',
+      currentScreen: 'home'
     };
 
+    const screens = [...document.querySelectorAll('.screen')];
+    const tabs = [...document.querySelectorAll('.tab-btn')];
     const ideaInput = document.getElementById('idea-input');
+    const notesRoot = document.getElementById('notes-root');
     const searchInput = document.getElementById('search-input');
     const categoryFilter = document.getElementById('category-filter');
     const timeFilter = document.getElementById('time-filter');
-    const sessionNameInput = document.getElementById('session-name-input');
     const sessionSelect = document.getElementById('session-select');
-    const ideasRoot = document.getElementById('ideas-root');
     const consolidationRoot = document.getElementById('consolidation-root');
     const activeSessionCard = document.getElementById('active-session-card');
+    const sessionNameInput = document.getElementById('session-name-input');
 
     function normalize(text) {
-      return String(text || '')
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '');
+      return String(text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     }
 
     function safeId() {
@@ -650,10 +634,7 @@
 
     function formatDate(date) {
       try {
-        return new Intl.DateTimeFormat('pt-BR', {
-          dateStyle: 'short',
-          timeStyle: 'short'
-        }).format(new Date(date));
+        return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(date));
       } catch {
         return date;
       }
@@ -662,15 +643,11 @@
     function isToday(date) {
       const d = new Date(date);
       const now = new Date();
-      return d.getFullYear() === now.getFullYear() &&
-             d.getMonth() === now.getMonth() &&
-             d.getDate() === now.getDate();
+      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
     }
 
     function isWithinDays(date, days) {
-      const d = new Date(date).getTime();
-      const now = Date.now();
-      return (now - d) <= days * 24 * 60 * 60 * 1000;
+      return (Date.now() - new Date(date).getTime()) <= days * 24 * 60 * 60 * 1000;
     }
 
     function getActiveSession() {
@@ -685,13 +662,8 @@
       return target >= start && target <= end;
     }
 
-    function saveIdeas() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(ideas));
-    }
-
-    function saveSessions() {
-      localStorage.setItem(SESSION_KEY, JSON.stringify(sessions));
-    }
+    function saveIdeas() { localStorage.setItem(STORAGE_KEY, JSON.stringify(ideas)); }
+    function saveSessions() { localStorage.setItem(SESSION_KEY, JSON.stringify(sessions)); }
 
     function loadData() {
       try {
@@ -705,8 +677,7 @@
     }
 
     function getCategories() {
-      const unique = new Set(ideas.map(item => item.category));
-      return ['Todas', ...Array.from(unique)];
+      return ['Todas', ...Array.from(new Set(ideas.map(item => item.category)))];
     }
 
     function getFilteredIdeas() {
@@ -716,50 +687,48 @@
         const term = normalize(state.search);
         result = result.filter(item => normalize(item.text).includes(term));
       }
-
       if (state.selectedCategory !== 'Todas') {
         result = result.filter(item => item.category === state.selectedCategory);
       }
-
-      if (state.timeFilter === 'today') {
-        result = result.filter(item => isToday(item.createdAt));
-      }
-
-      if (state.timeFilter === '7d') {
-        result = result.filter(item => isWithinDays(item.createdAt, 7));
-      }
-
-      if (state.timeFilter === 'meeting') {
-        result = result.filter(item => isInsideSession(item.createdAt, getActiveSession()));
-      }
+      if (state.timeFilter === 'today') result = result.filter(item => isToday(item.createdAt));
+      if (state.timeFilter === '7d') result = result.filter(item => isWithinDays(item.createdAt, 7));
+      if (state.timeFilter === 'meeting') result = result.filter(item => isInsideSession(item.createdAt, getActiveSession()));
 
       return result;
     }
 
     function getGroupedIdeas() {
-      const filtered = getFilteredIdeas();
       const groups = new Map();
-
-      for (const idea of filtered) {
+      for (const idea of getFilteredIdeas()) {
         const current = groups.get(idea.category) || [];
         current.push(idea);
         groups.set(idea.category, current);
       }
-
       return Array.from(groups.entries()).sort((a, b) => b[1].length - a[1].length);
+    }
+
+    function setScreen(name) {
+      state.currentScreen = name;
+      screens.forEach(screen => screen.classList.toggle('active', screen.dataset.screen === name));
+      tabs.forEach(tab => tab.classList.toggle('active', tab.dataset.tab === name));
     }
 
     function updateStats() {
       document.getElementById('stat-total').textContent = ideas.length;
       document.getElementById('stat-today').textContent = ideas.filter(i => isToday(i.createdAt)).length;
-      document.getElementById('stat-week').textContent = ideas.filter(i => isWithinDays(i.createdAt, 7)).length;
       document.getElementById('stat-categories').textContent = new Set(ideas.map(i => i.category)).size;
+      document.getElementById('stat-week').textContent = ideas.filter(i => isWithinDays(i.createdAt, 7)).length;
+      document.getElementById('stat-sessions').textContent = sessions.length;
+
+      const latest = ideas[0] ? new Date(ideas[0].createdAt) : null;
+      document.getElementById('stat-latest-day').textContent = latest
+        ? new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }).format(latest)
+        : '-';
     }
 
     function renderCategoryFilter() {
       const categories = getCategories();
       categoryFilter.innerHTML = '';
-
       for (const category of categories) {
         const option = document.createElement('option');
         option.value = category;
@@ -767,16 +736,11 @@
         if (category === state.selectedCategory) option.selected = true;
         categoryFilter.appendChild(option);
       }
-
-      if (!categories.includes(state.selectedCategory)) {
-        state.selectedCategory = 'Todas';
-        categoryFilter.value = 'Todas';
-      }
+      if (!categories.includes(state.selectedCategory)) state.selectedCategory = 'Todas';
     }
 
     function renderSessions() {
-      sessionSelect.innerHTML = '<option value="">Selecione uma sessão</option>';
-
+      sessionSelect.innerHTML = '<option value="">Sessão</option>';
       for (const session of sessions) {
         const option = document.createElement('option');
         option.value = session.id;
@@ -785,9 +749,8 @@
         sessionSelect.appendChild(option);
       }
 
-      const activeSession = getActiveSession();
-
-      if (!activeSession) {
+      const active = getActiveSession();
+      if (!active) {
         activeSessionCard.classList.add('hidden');
         activeSessionCard.innerHTML = '';
         return;
@@ -795,105 +758,115 @@
 
       activeSessionCard.classList.remove('hidden');
       activeSessionCard.innerHTML = `
-        <h3>${escapeHtml(activeSession.name)}</h3>
-        <p>Início: ${escapeHtml(formatDate(activeSession.startAt))}</p>
-        <div style="height:8px;"></div>
-        <p>Fim: ${escapeHtml(activeSession.endAt ? formatDate(activeSession.endAt) : 'em andamento')}</p>
+        <h3>${escapeHtml(active.name)}</h3>
+        <p>Início: ${escapeHtml(formatDate(active.startAt))}</p>
+        <p>Fim: ${escapeHtml(active.endAt ? formatDate(active.endAt) : 'em andamento')}</p>
       `;
     }
 
-    function renderIdeas() {
-      const groupedIdeas = getGroupedIdeas();
-      ideasRoot.innerHTML = '';
+    function renderLastNote() {
+      const last = ideas[0];
+      const title = document.getElementById('last-note-title');
+      const preview = document.getElementById('last-note-preview');
 
-      if (groupedIdeas.length === 0) {
-        const empty = document.createElement('div');
-        empty.className = 'empty';
-        empty.textContent = 'Sua pilha está vazia ou nenhum item bate com os filtros atuais.';
-        ideasRoot.appendChild(empty);
+      if (!last) {
+        title.textContent = 'Sua pilha ainda está vazia';
+        preview.innerHTML = '<div class="hint">Assim que você salvar algo, a última nota aparece aqui como prévia rápida.</div>';
         return;
       }
 
-      for (const [category, group] of groupedIdeas) {
-        const color = getCategoryColor(category);
-        const section = document.createElement('section');
-        section.className = 'panel group-card';
+      const color = getCategoryColor(last.category);
+      title.textContent = last.category;
+      preview.innerHTML = `
+        <div class="note-card" style="margin:0; --category-color:${color.solid}; --category-soft:${color.soft}; padding:14px; border-radius:18px;">
+          <div class="note-text">${escapeHtml(last.text)}</div>
+          <div class="chips">
+            <span class="chip category">${escapeHtml(last.category)}</span>
+            <span class="chip">${escapeHtml(formatDate(last.createdAt))}</span>
+          </div>
+        </div>
+      `;
+    }
 
-        const itemsHtml = group.map(idea => {
+    function renderNotes() {
+      const grouped = getGroupedIdeas();
+      notesRoot.innerHTML = '';
+
+      if (grouped.length === 0) {
+        notesRoot.innerHTML = '<div class="empty">Nenhuma nota encontrada com os filtros atuais.</div>';
+        return;
+      }
+
+      for (const [category, group] of grouped) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'mini';
+        const color = getCategoryColor(category);
+
+        const listHtml = group.map(idea => {
           const ideaColor = getCategoryColor(idea.category);
           return `
-            <div class="idea-card" style="--category-color:${ideaColor.solid}; --category-soft:${ideaColor.soft};">
-              <div class="idea-row">
-                <div class="idea-main">
-                  <p class="idea-text">${escapeHtml(idea.text)}</p>
-                  <div class="meta">
-                    <span class="chip chip-category">${escapeHtml(idea.category)}</span>
+            <div class="note-card" style="--category-color:${ideaColor.solid}; --category-soft:${ideaColor.soft}; margin-top:10px;">
+              <div class="note-top">
+                <div style="flex:1; min-width:0;">
+                  <div class="note-text">${escapeHtml(idea.text)}</div>
+                  <div class="chips">
+                    <span class="chip category">${escapeHtml(idea.category)}</span>
                     <span class="chip">${escapeHtml(formatDate(idea.createdAt))}</span>
                     <span class="chip">confiança ${escapeHtml(idea.confidence)}</span>
-                    <span class="chip">${escapeHtml(idea.source)}</span>
                   </div>
                 </div>
-                <div class="idea-actions">
-                  <button class="icon-btn" type="button" data-edit-id="${escapeHtml(idea.id)}" title="Editar">✏️</button>
-                  <button class="icon-btn" type="button" data-delete-id="${escapeHtml(idea.id)}" title="Apagar">🗑️</button>
+                <div class="note-actions">
+                  <button class="icon-btn" type="button" data-edit-id="${escapeHtml(idea.id)}">✏️</button>
+                  <button class="icon-btn" type="button" data-delete-id="${escapeHtml(idea.id)}">🗑️</button>
                 </div>
               </div>
             </div>
           `;
         }).join('');
 
-        section.innerHTML = `
-          <div class="group-head">
+        wrapper.innerHTML = `
+          <div class="section-head" style="margin-bottom:8px;">
             <div>
-              <h2 class="group-title">${escapeHtml(category)}</h2>
-              <div class="group-sub">${group.length} ${group.length === 1 ? 'ideia' : 'ideias'}</div>
+              <div class="section-label" style="margin-bottom:4px;">Tema</div>
+              <h3>${escapeHtml(category)}</h3>
             </div>
-            <span class="chip chip-category" style="background:${color.soft};">${escapeHtml(category)}</span>
+            <span class="chip category" style="background:${color.soft};">${group.length}</span>
           </div>
-          <div class="idea-list">${itemsHtml}</div>
+          ${listHtml}
         `;
-
-        ideasRoot.appendChild(section);
+        notesRoot.appendChild(wrapper);
       }
 
-      ideasRoot.querySelectorAll('[data-delete-id]').forEach(button => {
-        button.addEventListener('click', () => {
-          deleteIdea(button.getAttribute('data-delete-id'));
-        });
+      notesRoot.querySelectorAll('[data-delete-id]').forEach(button => {
+        button.addEventListener('click', () => deleteIdea(button.getAttribute('data-delete-id')));
       });
-
-      ideasRoot.querySelectorAll('[data-edit-id]').forEach(button => {
-        button.addEventListener('click', () => {
-          editIdea(button.getAttribute('data-edit-id'));
-        });
+      notesRoot.querySelectorAll('[data-edit-id]').forEach(button => {
+        button.addEventListener('click', () => editIdea(button.getAttribute('data-edit-id')));
       });
     }
 
     function renderConsolidation() {
-      const groupedIdeas = getGroupedIdeas();
+      const grouped = getGroupedIdeas();
       consolidationRoot.innerHTML = '';
 
-      if (groupedIdeas.length === 0) {
-        const empty = document.createElement('div');
-        empty.className = 'mini-card';
-        empty.innerHTML = '<p>Conforme você empilha ideias, esta área começa a mostrar agrupamentos.</p>';
-        consolidationRoot.appendChild(empty);
+      if (!grouped.length) {
+        consolidationRoot.innerHTML = '<div class="empty">Conforme você empilha notas, os agrupamentos aparecem aqui.</div>';
         return;
       }
 
-      groupedIdeas.slice(0, 5).forEach(([category, group]) => {
+      grouped.slice(0, 5).forEach(([category, group]) => {
         const color = getCategoryColor(category);
-        const card = document.createElement('div');
-        card.className = 'mini-card';
-        card.style.borderColor = color.soft;
-        card.innerHTML = `
-          <div class="row-between">
+        const div = document.createElement('div');
+        div.className = 'mini';
+        div.style.borderColor = color.soft;
+        div.innerHTML = `
+          <div class="section-head" style="margin-bottom:6px;">
             <h3>${escapeHtml(category)}</h3>
-            <span class="hint">${group.length}</span>
+            <span class="chip category" style="background:${color.soft};">${group.length}</span>
           </div>
           <p>${escapeHtml(group.slice(0, 2).map(item => item.text).join(' • '))}</p>
         `;
-        consolidationRoot.appendChild(card);
+        consolidationRoot.appendChild(div);
       });
     }
 
@@ -901,16 +874,16 @@
       updateStats();
       renderCategoryFilter();
       renderSessions();
-      renderIdeas();
+      renderLastNote();
+      renderNotes();
       renderConsolidation();
     }
 
     function addIdea() {
       const text = ideaInput.value.trim();
       if (!text) return;
-
       const inference = inferCategory(text);
-      const newIdea = {
+      ideas.unshift({
         id: safeId(),
         text,
         createdAt: new Date().toISOString(),
@@ -918,39 +891,28 @@
         category: inference.category,
         confidence: inference.confidence,
         source: 'manual'
-      };
-
-      ideas.unshift(newIdea);
+      });
       saveIdeas();
       ideaInput.value = '';
       renderAll();
+      setScreen('home');
     }
 
     function editIdea(id) {
       const idea = ideas.find(item => item.id === id);
       if (!idea) return;
-
-      const nextText = window.prompt('Edite sua ideia:', idea.text);
+      const nextText = window.prompt('Edite sua nota:', idea.text);
       if (nextText === null) return;
-
       const trimmed = nextText.trim();
       if (!trimmed) return;
-
       const inference = inferCategory(trimmed);
-
-      ideas = ideas.map(item => {
-        if (item.id === id) {
-          return {
-            ...item,
-            text: trimmed,
-            updatedAt: new Date().toISOString(),
-            category: inference.category,
-            confidence: inference.confidence
-          };
-        }
-        return item;
-      });
-
+      ideas = ideas.map(item => item.id === id ? {
+        ...item,
+        text: trimmed,
+        updatedAt: new Date().toISOString(),
+        category: inference.category,
+        confidence: inference.confidence
+      } : item);
       saveIdeas();
       renderAll();
     }
@@ -962,8 +924,7 @@
     }
 
     function clearAllIdeas() {
-      const confirmed = window.confirm('Tem certeza que deseja apagar toda a pilha?');
-      if (!confirmed) return;
+      if (!window.confirm('Tem certeza que deseja apagar toda a pilha?')) return;
       ideas = [];
       saveIdeas();
       renderAll();
@@ -971,14 +932,11 @@
 
     function startSession() {
       const rawName = sessionNameInput.value.trim();
-      const fallbackName = 'Reunião ' + formatDate(new Date().toISOString());
-
       const session = {
         id: safeId(),
-        name: rawName || fallbackName,
+        name: rawName || ('Reunião ' + formatDate(new Date().toISOString())),
         startAt: new Date().toISOString()
       };
-
       sessions.unshift(session);
       state.activeSessionId = session.id;
       state.timeFilter = 'meeting';
@@ -990,23 +948,13 @@
 
     function endSession() {
       if (!state.activeSessionId) return;
-      sessions = sessions.map(session => {
-        if (session.id === state.activeSessionId) {
-          return { ...session, endAt: new Date().toISOString() };
-        }
-        return session;
-      });
+      sessions = sessions.map(session => session.id === state.activeSessionId ? { ...session, endAt: new Date().toISOString() } : session);
       saveSessions();
       renderAll();
     }
 
     function exportJson() {
-      const payload = {
-        exportedAt: new Date().toISOString(),
-        ideas,
-        sessions
-      };
-
+      const payload = { exportedAt: new Date().toISOString(), ideas, sessions };
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -1027,42 +975,35 @@
         .replaceAll("'", '&#039;');
     }
 
+    tabs.forEach(tab => tab.addEventListener('click', () => setScreen(tab.dataset.tab)));
     document.getElementById('add-idea-btn').addEventListener('click', addIdea);
-    document.getElementById('clear-input-btn').addEventListener('click', () => {
-      ideaInput.value = '';
-      ideaInput.focus();
-    });
+    document.getElementById('export-json-btn').addEventListener('click', exportJson);
     document.getElementById('clear-all-btn').addEventListener('click', clearAllIdeas);
     document.getElementById('start-session-btn').addEventListener('click', startSession);
     document.getElementById('end-session-btn').addEventListener('click', endSession);
-    document.getElementById('export-json-btn').addEventListener('click', exportJson);
 
     ideaInput.addEventListener('keydown', event => {
       if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') addIdea();
     });
-
     searchInput.addEventListener('input', event => {
       state.search = event.target.value;
-      renderIdeas();
+      renderNotes();
       renderConsolidation();
     });
-
     categoryFilter.addEventListener('change', event => {
       state.selectedCategory = event.target.value;
-      renderIdeas();
+      renderNotes();
       renderConsolidation();
     });
-
     timeFilter.addEventListener('change', event => {
       state.timeFilter = event.target.value;
-      renderIdeas();
+      renderNotes();
       renderConsolidation();
     });
-
     sessionSelect.addEventListener('change', event => {
       state.activeSessionId = event.target.value;
       renderSessions();
-      renderIdeas();
+      renderNotes();
       renderConsolidation();
     });
 
