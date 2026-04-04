@@ -20,6 +20,7 @@
       --primary-2: #a78bfa;
       --success: #34d399;
       --danger: #fb7185;
+      --warning: #f59e0b;
       --shadow: 0 24px 80px rgba(0,0,0,0.38);
       --radius-xl: 28px;
       --radius-lg: 22px;
@@ -39,8 +40,6 @@
         linear-gradient(180deg, #11203a 0%, #08111f 28%, #050b16 100%);
       color: var(--text);
     }
-
-    body { padding: 0; }
 
     .shell {
       max-width: 430px;
@@ -84,7 +83,7 @@
       color: var(--muted-2);
       font-size: 14px;
       line-height: 1.6;
-      max-width: 260px;
+      max-width: 280px;
     }
 
     .glass {
@@ -102,10 +101,7 @@
       overflow: hidden;
     }
 
-    .hero-card {
-      padding: 18px;
-      margin-bottom: 16px;
-    }
+    .hero-card, .composer-card { padding: 18px; }
 
     .hero-preview {
       margin-top: 16px;
@@ -154,10 +150,6 @@
 
     textarea::placeholder, input::placeholder { color: #7186ad; }
 
-    .composer-card {
-      padding: 18px;
-    }
-
     .composer-actions {
       display: grid;
       grid-template-columns: 1fr auto;
@@ -196,6 +188,7 @@
     .btn-soft { background: rgba(255,255,255,0.06); }
     .btn-danger { color: #fecdd3; background: rgba(251,113,133,0.14); }
     .btn-success { color: #d1fae5; background: rgba(52,211,153,0.14); }
+    .btn-warning { color: #fde68a; background: rgba(245,158,11,0.14); }
 
     .stats-row {
       display: grid;
@@ -246,7 +239,7 @@
       gap: 12px;
     }
 
-    .note-card {
+    .note-card, .stack-card {
       padding: 16px;
       border-radius: 24px;
       background: linear-gradient(180deg, rgba(8,14,26,0.95), rgba(8,14,26,0.82));
@@ -255,7 +248,7 @@
       overflow: hidden;
     }
 
-    .note-card::before {
+    .note-card::before, .stack-card::before {
       content: "";
       position: absolute;
       left: 0;
@@ -265,7 +258,7 @@
       background: var(--category-color, #94a3b8);
     }
 
-    .note-top {
+    .note-top, .stack-top {
       display: flex;
       gap: 12px;
       justify-content: space-between;
@@ -325,7 +318,7 @@
       border: 1px solid rgba(255,255,255,0.08);
     }
 
-    .mini p {
+    .mini p, .stack-summary, .meta-text {
       margin-top: 8px;
       color: var(--muted-2);
       line-height: 1.55;
@@ -354,7 +347,7 @@
       border: 1px solid rgba(255,255,255,0.10);
       backdrop-filter: blur(20px);
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 8px;
       z-index: 30;
       box-shadow: 0 18px 50px rgba(0,0,0,0.34);
@@ -395,12 +388,7 @@
       border: 1px solid rgba(255,255,255,0.08);
     }
 
-    .session-card p {
-      margin-top: 6px;
-      color: var(--muted-2);
-      font-size: 14px;
-    }
-
+    .session-card p { margin-top: 6px; color: var(--muted-2); font-size: 14px; }
     .hidden { display: none !important; }
 
     @keyframes fadeUp {
@@ -424,7 +412,7 @@
         <div class="section-label">Nova nota</div>
         <textarea id="idea-input" placeholder="Cole aqui um comentário, uma ideia, uma frase ou um pensamento solto..."></textarea>
         <div class="composer-actions">
-          <div class="hint">Cmd/Ctrl + Enter salva rápido. A categorização acontece depois.</div>
+          <div class="hint">Cmd/Ctrl + Enter salva rápido. Se a IA estiver ativa, a nota também pode ser organizada em pilhas.</div>
           <button id="add-idea-btn" class="btn-primary" type="button">Empilhar</button>
         </div>
       </div>
@@ -449,8 +437,8 @@
             <div class="value" id="stat-today">0</div>
           </div>
           <div class="stat">
-            <div class="name">Temas</div>
-            <div class="value" id="stat-categories">0</div>
+            <div class="name">Pilhas</div>
+            <div class="value" id="stat-stacks">0</div>
           </div>
         </div>
       </div>
@@ -459,9 +447,9 @@
     <section class="screen" data-screen="pilhas">
       <div class="topbar">
         <div>
-          <div class="eyebrow">📚 Pilhas</div>
-          <h2>Todas as notas</h2>
-          <p class="subtitle">Busque, filtre e revise suas pilhas por tema e por tempo.</p>
+          <div class="eyebrow">🗂️ Pilhas</div>
+          <h2>Notas e agrupamentos</h2>
+          <p class="subtitle">Busque notas, filtre por tempo e veja como elas estão sendo agrupadas.</p>
         </div>
       </div>
 
@@ -479,6 +467,7 @@
             <option value="">Sessão</option>
           </select>
         </div>
+        <div id="stacks-root" class="stack-list" style="margin-bottom:12px;"></div>
         <div id="notes-root" class="stack-list"></div>
       </div>
     </section>
@@ -486,7 +475,7 @@
     <section class="screen" data-screen="dashboard">
       <div class="topbar">
         <div>
-          <div class="eyebrow">✨ Dashboard</div>
+          <div class="eyebrow">📊 Resumo</div>
           <h2>Leitura rápida</h2>
           <p class="subtitle">Uma visão compacta dos padrões que estão se formando na sua pilha.</p>
         </div>
@@ -536,6 +525,54 @@
         </div>
       </div>
     </section>
+
+    <section class="screen" data-screen="ia">
+      <div class="topbar">
+        <div>
+          <div class="eyebrow">🤖 Inteligência</div>
+          <h2>Classificação com LLM</h2>
+          <p class="subtitle">Conecte uma chave e deixe o app sugerir, criar ou atualizar pilhas automaticamente.</p>
+        </div>
+      </div>
+
+      <div class="glass card">
+        <div class="section-head"><h3>Configurações</h3></div>
+        <div class="stack-list">
+          <select id="llm-provider">
+            <option value="openai">OpenAI compatível</option>
+            <option value="openrouter">OpenRouter</option>
+            <option value="custom">Custom URL</option>
+          </select>
+          <input id="llm-base-url" type="text" placeholder="Base URL da API" />
+          <input id="llm-model" type="text" placeholder="Modelo, ex: gpt-4.1-mini" />
+          <input id="llm-api-key" type="password" placeholder="API key" />
+          <label class="mini" style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+            <div>
+              <h3 style="margin:0;">Classificar ao salvar</h3>
+              <div class="meta-text" style="margin-top:4px;">Quando ativo, cada nota nova tenta entrar em uma pilha automaticamente.</div>
+            </div>
+            <input id="llm-auto-classify" type="checkbox" style="width:20px; height:20px; accent-color:#79d7ff;" />
+          </label>
+          <button id="save-llm-settings-btn" type="button" class="btn-primary">Salvar configuração</button>
+          <button id="test-llm-btn" type="button" class="btn-soft">Testar conexão</button>
+          <div class="hint">A chave fica salva apenas neste navegador. Para produção, o ideal é usar um proxy no servidor.</div>
+        </div>
+      </div>
+
+      <div class="glass card">
+        <div class="section-head"><h3>Status</h3></div>
+        <div id="llm-status-card" class="mini">
+          <p>Nenhuma configuração salva ainda.</p>
+        </div>
+      </div>
+
+      <div class="glass card">
+        <div class="section-head"><h3>Última classificação</h3></div>
+        <div id="classification-log" class="mini">
+          <p>Ainda não há classificações registradas.</p>
+        </div>
+      </div>
+    </section>
   </div>
 
   <nav class="bottom-nav">
@@ -551,11 +588,18 @@
       <span class="tab-icon">📊</span>
       <span>Resumo</span>
     </button>
+    <button class="tab-btn" data-tab="ia" type="button">
+      <span class="tab-icon">🤖</span>
+      <span>IA</span>
+    </button>
   </nav>
 
   <script>
-    const STORAGE_KEY = 'pilha:v3:ideas';
-    const SESSION_KEY = 'pilha:v3:sessions';
+    const STORAGE_KEY = 'pilha:v4:ideas';
+    const SESSION_KEY = 'pilha:v4:sessions';
+    const STACKS_KEY = 'pilha:v4:stacks';
+    const LLM_SETTINGS_KEY = 'pilha:v4:llm-settings';
+    const CLASSIFICATION_LOG_KEY = 'pilha:v4:classification-log';
 
     const CATEGORY_RULES = [
       { category: 'Produto', keywords: ['produto', 'feature', 'funcionalidade', 'app', 'ux', 'ui', 'usuario', 'usuário', 'mvp'] },
@@ -578,6 +622,8 @@
 
     let ideas = [];
     let sessions = [];
+    let stacks = [];
+    let classificationLog = null;
     let state = {
       search: '',
       selectedCategory: 'Todas',
@@ -590,6 +636,7 @@
     const tabs = [...document.querySelectorAll('.tab-btn')];
     const ideaInput = document.getElementById('idea-input');
     const notesRoot = document.getElementById('notes-root');
+    const stacksRoot = document.getElementById('stacks-root');
     const searchInput = document.getElementById('search-input');
     const categoryFilter = document.getElementById('category-filter');
     const timeFilter = document.getElementById('time-filter');
@@ -611,18 +658,14 @@
       const normalized = normalize(text);
       let bestCategory = 'Soltas';
       let bestScore = 0;
-
       for (const rule of CATEGORY_RULES) {
         let score = 0;
-        for (const keyword of rule.keywords) {
-          if (normalized.includes(normalize(keyword))) score += 1;
-        }
+        for (const keyword of rule.keywords) if (normalized.includes(normalize(keyword))) score += 1;
         if (score > bestScore) {
           bestScore = score;
           bestCategory = rule.category;
         }
       }
-
       if (bestScore >= 2) return { category: bestCategory, confidence: 'alta' };
       if (bestScore === 1) return { category: bestCategory, confidence: 'media' };
       return { category: 'Soltas', confidence: 'baixa' };
@@ -635,24 +678,16 @@
     function formatDate(date) {
       try {
         return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(date));
-      } catch {
-        return date;
-      }
+      } catch { return date; }
     }
 
     function isToday(date) {
-      const d = new Date(date);
-      const now = new Date();
+      const d = new Date(date); const now = new Date();
       return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
     }
 
-    function isWithinDays(date, days) {
-      return (Date.now() - new Date(date).getTime()) <= days * 24 * 60 * 60 * 1000;
-    }
-
-    function getActiveSession() {
-      return sessions.find(session => session.id === state.activeSessionId) || null;
-    }
+    function isWithinDays(date, days) { return (Date.now() - new Date(date).getTime()) <= days * 24 * 60 * 60 * 1000; }
+    function getActiveSession() { return sessions.find(session => session.id === state.activeSessionId) || null; }
 
     function isInsideSession(date, session) {
       if (!session) return true;
@@ -664,36 +699,42 @@
 
     function saveIdeas() { localStorage.setItem(STORAGE_KEY, JSON.stringify(ideas)); }
     function saveSessions() { localStorage.setItem(SESSION_KEY, JSON.stringify(sessions)); }
+    function saveStacks() { localStorage.setItem(STACKS_KEY, JSON.stringify(stacks)); }
+    function saveClassificationLog() { localStorage.setItem(CLASSIFICATION_LOG_KEY, JSON.stringify(classificationLog)); }
 
     function loadData() {
       try {
         ideas = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
         sessions = JSON.parse(localStorage.getItem(SESSION_KEY) || '[]');
+        stacks = JSON.parse(localStorage.getItem(STACKS_KEY) || '[]');
+        classificationLog = JSON.parse(localStorage.getItem(CLASSIFICATION_LOG_KEY) || 'null');
       } catch (error) {
         console.error('Erro ao carregar dados locais', error);
-        ideas = [];
-        sessions = [];
+        ideas = []; sessions = []; stacks = []; classificationLog = null;
       }
     }
 
-    function getCategories() {
-      return ['Todas', ...Array.from(new Set(ideas.map(item => item.category)))];
+    function getLLMSettings() {
+      try {
+        return JSON.parse(localStorage.getItem(LLM_SETTINGS_KEY) || '{}');
+      } catch {
+        return {};
+      }
     }
+
+    function saveLLMSettings(settings) {
+      localStorage.setItem(LLM_SETTINGS_KEY, JSON.stringify(settings));
+    }
+
+    function getCategories() { return ['Todas', ...Array.from(new Set(ideas.map(item => item.category)))]; }
 
     function getFilteredIdeas() {
       let result = [...ideas].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-      if (state.search.trim()) {
-        const term = normalize(state.search);
-        result = result.filter(item => normalize(item.text).includes(term));
-      }
-      if (state.selectedCategory !== 'Todas') {
-        result = result.filter(item => item.category === state.selectedCategory);
-      }
+      if (state.search.trim()) result = result.filter(item => normalize(item.text).includes(normalize(state.search)));
+      if (state.selectedCategory !== 'Todas') result = result.filter(item => item.category === state.selectedCategory);
       if (state.timeFilter === 'today') result = result.filter(item => isToday(item.createdAt));
       if (state.timeFilter === '7d') result = result.filter(item => isWithinDays(item.createdAt, 7));
       if (state.timeFilter === 'meeting') result = result.filter(item => isInsideSession(item.createdAt, getActiveSession()));
-
       return result;
     }
 
@@ -707,6 +748,46 @@
       return Array.from(groups.entries()).sort((a, b) => b[1].length - a[1].length);
     }
 
+    function getStackById(id) { return stacks.find(stack => stack.id === id) || null; }
+
+    function buildStackSummaries() {
+      return stacks.map(stack => {
+        const stackIdeas = ideas.filter(idea => idea.stackId === stack.id).slice(0, 3);
+        return {
+          id: stack.id,
+          name: stack.name,
+          summary: stack.summary || '',
+          noteCount: ideas.filter(idea => idea.stackId === stack.id).length,
+          recent_examples: stackIdeas.map(idea => idea.text)
+        };
+      });
+    }
+
+    function createStack(name, summary, category) {
+      const stack = {
+        id: safeId(),
+        name,
+        summary: summary || '',
+        category: category || 'Soltas',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      stacks.unshift(stack);
+      saveStacks();
+      return stack;
+    }
+
+    function attachIdeaToStack(ideaId, stackId) {
+      ideas = ideas.map(idea => idea.id === ideaId ? { ...idea, stackId, updatedAt: new Date().toISOString() } : idea);
+      saveIdeas();
+    }
+
+    function ensureFallbackStackForCategory(category) {
+      const existing = stacks.find(stack => stack.category === category && stack.name === category);
+      if (existing) return existing;
+      return createStack(category, 'Pilha criada por classificação local.', category);
+    }
+
     function setScreen(name) {
       state.currentScreen = name;
       screens.forEach(screen => screen.classList.toggle('active', screen.dataset.screen === name));
@@ -716,14 +797,11 @@
     function updateStats() {
       document.getElementById('stat-total').textContent = ideas.length;
       document.getElementById('stat-today').textContent = ideas.filter(i => isToday(i.createdAt)).length;
-      document.getElementById('stat-categories').textContent = new Set(ideas.map(i => i.category)).size;
+      document.getElementById('stat-stacks').textContent = stacks.length;
       document.getElementById('stat-week').textContent = ideas.filter(i => isWithinDays(i.createdAt, 7)).length;
       document.getElementById('stat-sessions').textContent = sessions.length;
-
       const latest = ideas[0] ? new Date(ideas[0].createdAt) : null;
-      document.getElementById('stat-latest-day').textContent = latest
-        ? new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }).format(latest)
-        : '-';
+      document.getElementById('stat-latest-day').textContent = latest ? new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }).format(latest) : '-';
     }
 
     function renderCategoryFilter() {
@@ -748,62 +826,82 @@
         if (session.id === state.activeSessionId) option.selected = true;
         sessionSelect.appendChild(option);
       }
-
       const active = getActiveSession();
       if (!active) {
         activeSessionCard.classList.add('hidden');
         activeSessionCard.innerHTML = '';
         return;
       }
-
       activeSessionCard.classList.remove('hidden');
-      activeSessionCard.innerHTML = `
-        <h3>${escapeHtml(active.name)}</h3>
-        <p>Início: ${escapeHtml(formatDate(active.startAt))}</p>
-        <p>Fim: ${escapeHtml(active.endAt ? formatDate(active.endAt) : 'em andamento')}</p>
-      `;
+      activeSessionCard.innerHTML = `<h3>${escapeHtml(active.name)}</h3><p>Início: ${escapeHtml(formatDate(active.startAt))}</p><p>Fim: ${escapeHtml(active.endAt ? formatDate(active.endAt) : 'em andamento')}</p>`;
     }
 
     function renderLastNote() {
       const last = ideas[0];
       const title = document.getElementById('last-note-title');
       const preview = document.getElementById('last-note-preview');
-
       if (!last) {
         title.textContent = 'Sua pilha ainda está vazia';
         preview.innerHTML = '<div class="hint">Assim que você salvar algo, a última nota aparece aqui como prévia rápida.</div>';
         return;
       }
-
       const color = getCategoryColor(last.category);
-      title.textContent = last.category;
+      const stack = last.stackId ? getStackById(last.stackId) : null;
+      title.textContent = stack ? stack.name : last.category;
       preview.innerHTML = `
         <div class="note-card" style="margin:0; --category-color:${color.solid}; --category-soft:${color.soft}; padding:14px; border-radius:18px;">
           <div class="note-text">${escapeHtml(last.text)}</div>
           <div class="chips">
             <span class="chip category">${escapeHtml(last.category)}</span>
+            ${stack ? `<span class="chip">pilha ${escapeHtml(stack.name)}</span>` : ''}
             <span class="chip">${escapeHtml(formatDate(last.createdAt))}</span>
           </div>
         </div>
       `;
     }
 
+    function renderStacks() {
+      stacksRoot.innerHTML = '';
+      if (!stacks.length) {
+        stacksRoot.innerHTML = '<div class="empty">Ainda não existem pilhas consolidadas.</div>';
+        return;
+      }
+      stacks.slice(0, 6).forEach(stack => {
+        const color = getCategoryColor(stack.category || 'Soltas');
+        const count = ideas.filter(idea => idea.stackId === stack.id).length;
+        const card = document.createElement('div');
+        card.className = 'stack-card';
+        card.style.setProperty('--category-color', color.solid);
+        card.innerHTML = `
+          <div class="stack-top">
+            <div>
+              <h3>${escapeHtml(stack.name)}</h3>
+              <div class="stack-summary">${escapeHtml(stack.summary || 'Sem resumo ainda.')}</div>
+              <div class="chips">
+                <span class="chip category" style="--category-soft:${color.soft};">${escapeHtml(stack.category || 'Soltas')}</span>
+                <span class="chip">${count} notas</span>
+              </div>
+            </div>
+          </div>
+        `;
+        stacksRoot.appendChild(card);
+      });
+    }
+
     function renderNotes() {
       const grouped = getGroupedIdeas();
       notesRoot.innerHTML = '';
-
       if (grouped.length === 0) {
         notesRoot.innerHTML = '<div class="empty">Nenhuma nota encontrada com os filtros atuais.</div>';
         return;
       }
-
       for (const [category, group] of grouped) {
         const wrapper = document.createElement('div');
         wrapper.className = 'mini';
         const color = getCategoryColor(category);
-
         const listHtml = group.map(idea => {
           const ideaColor = getCategoryColor(idea.category);
+          const stack = idea.stackId ? getStackById(idea.stackId) : null;
           return `
             <div class="note-card" style="--category-color:${ideaColor.solid}; --category-soft:${ideaColor.soft}; margin-top:10px;">
               <div class="note-top">
@@ -811,6 +909,7 @@
                   <div class="note-text">${escapeHtml(idea.text)}</div>
                   <div class="chips">
                     <span class="chip category">${escapeHtml(idea.category)}</span>
+                    ${stack ? `<span class="chip">${escapeHtml(stack.name)}</span>` : ''}
                     <span class="chip">${escapeHtml(formatDate(idea.createdAt))}</span>
                     <span class="chip">confiança ${escapeHtml(idea.confidence)}</span>
                   </div>
@@ -823,51 +922,65 @@
             </div>
           `;
         }).join('');
-
         wrapper.innerHTML = `
           <div class="section-head" style="margin-bottom:8px;">
-            <div>
-              <div class="section-label" style="margin-bottom:4px;">Tema</div>
-              <h3>${escapeHtml(category)}</h3>
-            </div>
+            <div><div class="section-label" style="margin-bottom:4px;">Tema</div><h3>${escapeHtml(category)}</h3></div>
             <span class="chip category" style="background:${color.soft};">${group.length}</span>
           </div>
           ${listHtml}
         `;
         notesRoot.appendChild(wrapper);
       }
-
-      notesRoot.querySelectorAll('[data-delete-id]').forEach(button => {
-        button.addEventListener('click', () => deleteIdea(button.getAttribute('data-delete-id')));
-      });
-      notesRoot.querySelectorAll('[data-edit-id]').forEach(button => {
-        button.addEventListener('click', () => editIdea(button.getAttribute('data-edit-id')));
-      });
+      notesRoot.querySelectorAll('[data-delete-id]').forEach(button => button.addEventListener('click', () => deleteIdea(button.getAttribute('data-delete-id'))));
+      notesRoot.querySelectorAll('[data-edit-id]').forEach(button => button.addEventListener('click', () => editIdea(button.getAttribute('data-edit-id'))));
     }
 
     function renderConsolidation() {
       const grouped = getGroupedIdeas();
       consolidationRoot.innerHTML = '';
-
       if (!grouped.length) {
         consolidationRoot.innerHTML = '<div class="empty">Conforme você empilha notas, os agrupamentos aparecem aqui.</div>';
         return;
       }
-
       grouped.slice(0, 5).forEach(([category, group]) => {
         const color = getCategoryColor(category);
         const div = document.createElement('div');
         div.className = 'mini';
         div.style.borderColor = color.soft;
         div.innerHTML = `
-          <div class="section-head" style="margin-bottom:6px;">
-            <h3>${escapeHtml(category)}</h3>
-            <span class="chip category" style="background:${color.soft};">${group.length}</span>
-          </div>
+          <div class="section-head" style="margin-bottom:6px;"><h3>${escapeHtml(category)}</h3><span class="chip category" style="background:${color.soft};">${group.length}</span></div>
           <p>${escapeHtml(group.slice(0, 2).map(item => item.text).join(' • '))}</p>
         `;
         consolidationRoot.appendChild(div);
       });
+    }
+
+    function renderLLMSettings() {
+      const settings = getLLMSettings();
+      document.getElementById('llm-provider').value = settings.provider || 'openai';
+      document.getElementById('llm-base-url').value = settings.baseUrl || '';
+      document.getElementById('llm-model').value = settings.model || '';
+      document.getElementById('llm-api-key').value = settings.apiKey || '';
+      document.getElementById('llm-auto-classify').checked = Boolean(settings.autoClassify);
+
+      const statusCard = document.getElementById('llm-status-card');
+      if (!settings.apiKey || !settings.model) {
+        statusCard.innerHTML = '<p>LLM ainda não configurada. Salve provider, modelo e chave para ativar a classificação automática.</p>';
+      } else {
+        statusCard.innerHTML = `<p>Provider: ${escapeHtml(settings.provider || 'openai')}</p><p>Modelo: ${escapeHtml(settings.model)}</p><p>Classificar ao salvar: ${settings.autoClassify ? 'ativo' : 'desligado'}</p>`;
+      }
+
+      const logCard = document.getElementById('classification-log');
+      if (!classificationLog) {
+        logCard.innerHTML = '<p>Ainda não há classificações registradas.</p>';
+      } else {
+        logCard.innerHTML = `
+          <p><strong>Ação:</strong> ${escapeHtml(classificationLog.action)}</p>
+          <p><strong>Pilha:</strong> ${escapeHtml(classificationLog.target_stack_name || 'sem pilha')}</p>
+          <p><strong>Confiança:</strong> ${escapeHtml(String(classificationLog.confidence))}</p>
+          <p><strong>Motivo:</strong> ${escapeHtml(classificationLog.reason || '-')}</p>
+        `;
+      }
     }
 
     function renderAll() {
@@ -875,27 +988,150 @@
       renderCategoryFilter();
       renderSessions();
       renderLastNote();
+      renderStacks();
       renderNotes();
       renderConsolidation();
+      renderLLMSettings();
     }
 
-    function addIdea() {
+    function applyFallbackClassification(idea) {
+      const fallback = ensureFallbackStackForCategory(idea.category);
+      attachIdeaToStack(idea.id, fallback.id);
+      classificationLog = {
+        action: 'attach-fallback',
+        target_stack_id: fallback.id,
+        target_stack_name: fallback.name,
+        reason: 'Classificação local baseada em regra por categoria.',
+        confidence: idea.confidence,
+        suggested_tags: [idea.category.toLowerCase()],
+        createdAt: new Date().toISOString()
+      };
+      saveClassificationLog();
+    }
+
+    async function classifyIdeaWithLLM(idea) {
+      const settings = getLLMSettings();
+      if (!settings.apiKey || !settings.model || !settings.autoClassify) {
+        applyFallbackClassification(idea);
+        return;
+      }
+
+      const baseUrl = (settings.baseUrl || (settings.provider === 'openrouter' ? 'https://openrouter.ai/api/v1' : 'https://api.openai.com/v1')).replace(/\/$/, '');
+      const stackSummaries = buildStackSummaries();
+      const systemPrompt = `Você é um classificador de notas para um app chamado Pilha. Seu objetivo é decidir se uma nota deve entrar em uma pilha existente, criar uma nova pilha ou ficar sem pilha. Responda apenas em JSON válido no formato {"action":"attach|create|unclassified","target_stack_id":"string|null","target_stack_name":"string|null","reason":"string","confidence":0.0,"suggested_tags":["tag1"],"stack_summary":"string","category":"string"}. Prefira reutilizar pilhas existentes quando houver compatibilidade forte.`;
+      const userPrompt = JSON.stringify({
+        note: { id: idea.id, text: idea.text, category: idea.category },
+        existing_stacks: stackSummaries
+      });
+
+      try {
+        const response = await fetch(baseUrl + '/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + settings.apiKey,
+            ...(settings.provider === 'openrouter' ? { 'HTTP-Referer': location.origin, 'X-Title': 'Pilha' } : {})
+          },
+          body: JSON.stringify({
+            model: settings.model,
+            temperature: 0.1,
+            response_format: { type: 'json_object' },
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ]
+          })
+        });
+
+        if (!response.ok) throw new Error('Falha na API: ' + response.status);
+        const data = await response.json();
+        const content = data.choices?.[0]?.message?.content;
+        if (!content) throw new Error('Resposta vazia da LLM');
+        const parsed = JSON.parse(content);
+        await applyClassificationResult(idea.id, parsed);
+      } catch (error) {
+        console.error(error);
+        classificationLog = {
+          action: 'error',
+          target_stack_id: null,
+          target_stack_name: null,
+          reason: String(error.message || error),
+          confidence: 0,
+          suggested_tags: [],
+          createdAt: new Date().toISOString()
+        };
+        saveClassificationLog();
+        applyFallbackClassification(idea);
+      }
+    }
+
+    async function applyClassificationResult(ideaId, result) {
+      const action = result.action || 'unclassified';
+      const category = result.category || 'Soltas';
+      let stack = null;
+
+      if (action === 'attach' && result.target_stack_id) {
+        stack = getStackById(result.target_stack_id);
+      }
+      if (!stack && action === 'attach' && result.target_stack_name) {
+        stack = stacks.find(item => normalize(item.name) === normalize(result.target_stack_name)) || null;
+      }
+      if (action === 'create') {
+        stack = createStack(result.target_stack_name || 'Nova pilha', result.stack_summary || result.reason || '', category);
+      }
+      if (!stack && action === 'attach') {
+        stack = createStack(result.target_stack_name || category, result.stack_summary || result.reason || '', category);
+      }
+
+      ideas = ideas.map(idea => idea.id === ideaId ? {
+        ...idea,
+        stackId: stack ? stack.id : null,
+        classification: {
+          action,
+          reason: result.reason || '',
+          confidence: result.confidence ?? 0,
+          suggestedTags: result.suggested_tags || []
+        },
+        updatedAt: new Date().toISOString()
+      } : idea);
+      saveIdeas();
+      saveStacks();
+
+      classificationLog = {
+        action,
+        target_stack_id: stack ? stack.id : null,
+        target_stack_name: stack ? stack.name : result.target_stack_name || null,
+        reason: result.reason || '',
+        confidence: result.confidence ?? 0,
+        suggested_tags: result.suggested_tags || [],
+        createdAt: new Date().toISOString()
+      };
+      saveClassificationLog();
+      renderAll();
+    }
+
+    async function addIdea() {
       const text = ideaInput.value.trim();
       if (!text) return;
       const inference = inferCategory(text);
-      ideas.unshift({
+      const idea = {
         id: safeId(),
         text,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         category: inference.category,
         confidence: inference.confidence,
-        source: 'manual'
-      });
+        source: 'manual',
+        stackId: null,
+        classification: null
+      };
+      ideas.unshift(idea);
       saveIdeas();
       ideaInput.value = '';
       renderAll();
       setScreen('home');
+      await classifyIdeaWithLLM(idea);
+      renderAll();
     }
 
     function editIdea(id) {
@@ -906,73 +1142,76 @@
       const trimmed = nextText.trim();
       if (!trimmed) return;
       const inference = inferCategory(trimmed);
-      ideas = ideas.map(item => item.id === id ? {
-        ...item,
-        text: trimmed,
-        updatedAt: new Date().toISOString(),
-        category: inference.category,
-        confidence: inference.confidence
-      } : item);
+      ideas = ideas.map(item => item.id === id ? { ...item, text: trimmed, updatedAt: new Date().toISOString(), category: inference.category, confidence: inference.confidence } : item);
       saveIdeas();
       renderAll();
     }
 
-    function deleteIdea(id) {
-      ideas = ideas.filter(item => item.id !== id);
-      saveIdeas();
-      renderAll();
-    }
+    function deleteIdea(id) { ideas = ideas.filter(item => item.id !== id); saveIdeas(); renderAll(); }
 
     function clearAllIdeas() {
       if (!window.confirm('Tem certeza que deseja apagar toda a pilha?')) return;
-      ideas = [];
-      saveIdeas();
-      renderAll();
+      ideas = []; stacks = []; classificationLog = null;
+      saveIdeas(); saveStacks(); saveClassificationLog(); renderAll();
     }
 
     function startSession() {
       const rawName = sessionNameInput.value.trim();
-      const session = {
-        id: safeId(),
-        name: rawName || ('Reunião ' + formatDate(new Date().toISOString())),
-        startAt: new Date().toISOString()
-      };
+      const session = { id: safeId(), name: rawName || ('Reunião ' + formatDate(new Date().toISOString())), startAt: new Date().toISOString() };
       sessions.unshift(session);
-      state.activeSessionId = session.id;
-      state.timeFilter = 'meeting';
-      timeFilter.value = 'meeting';
+      state.activeSessionId = session.id; state.timeFilter = 'meeting'; timeFilter.value = 'meeting';
       sessionNameInput.value = '';
-      saveSessions();
-      renderAll();
+      saveSessions(); renderAll();
     }
 
     function endSession() {
       if (!state.activeSessionId) return;
       sessions = sessions.map(session => session.id === state.activeSessionId ? { ...session, endAt: new Date().toISOString() } : session);
-      saveSessions();
-      renderAll();
+      saveSessions(); renderAll();
     }
 
     function exportJson() {
-      const payload = { exportedAt: new Date().toISOString(), ideas, sessions };
+      const payload = { exportedAt: new Date().toISOString(), ideas, sessions, stacks, llmSettings: { ...getLLMSettings(), apiKey: getLLMSettings().apiKey ? '[redacted]' : '' }, classificationLog };
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = 'pilha-export.json';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      a.href = url; a.download = 'pilha-export.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    }
+
+    function saveLLMForm() {
+      const settings = {
+        provider: document.getElementById('llm-provider').value,
+        baseUrl: document.getElementById('llm-base-url').value.trim(),
+        model: document.getElementById('llm-model').value.trim(),
+        apiKey: document.getElementById('llm-api-key').value.trim(),
+        autoClassify: document.getElementById('llm-auto-classify').checked
+      };
+      saveLLMSettings(settings);
+      renderLLMSettings();
+      alert('Configuração da IA salva neste navegador.');
+    }
+
+    async function testLLMConnection() {
+      const settings = getLLMSettings();
+      if (!settings.apiKey || !settings.model) {
+        alert('Preencha pelo menos a API key e o modelo.');
+        return;
+      }
+      const testIdea = { id: safeId(), text: 'Criar uma home mais simples para capturar ideias no iPhone', category: 'Produto' };
+      const previousLog = classificationLog;
+      classificationLog = { action: 'testing', target_stack_name: null, reason: 'Testando conexão...', confidence: 0, suggested_tags: [] };
+      renderLLMSettings();
+      try {
+        await classifyIdeaWithLLM(testIdea);
+        alert('Teste concluído. Veja o resultado em Última classificação.');
+      } catch {
+        classificationLog = previousLog;
+        renderLLMSettings();
+      }
     }
 
     function escapeHtml(value) {
-      return String(value)
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#039;');
+      return String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;');
     }
 
     tabs.forEach(tab => tab.addEventListener('click', () => setScreen(tab.dataset.tab)));
@@ -981,31 +1220,14 @@
     document.getElementById('clear-all-btn').addEventListener('click', clearAllIdeas);
     document.getElementById('start-session-btn').addEventListener('click', startSession);
     document.getElementById('end-session-btn').addEventListener('click', endSession);
+    document.getElementById('save-llm-settings-btn').addEventListener('click', saveLLMForm);
+    document.getElementById('test-llm-btn').addEventListener('click', testLLMConnection);
 
-    ideaInput.addEventListener('keydown', event => {
-      if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') addIdea();
-    });
-    searchInput.addEventListener('input', event => {
-      state.search = event.target.value;
-      renderNotes();
-      renderConsolidation();
-    });
-    categoryFilter.addEventListener('change', event => {
-      state.selectedCategory = event.target.value;
-      renderNotes();
-      renderConsolidation();
-    });
-    timeFilter.addEventListener('change', event => {
-      state.timeFilter = event.target.value;
-      renderNotes();
-      renderConsolidation();
-    });
-    sessionSelect.addEventListener('change', event => {
-      state.activeSessionId = event.target.value;
-      renderSessions();
-      renderNotes();
-      renderConsolidation();
-    });
+    ideaInput.addEventListener('keydown', event => { if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') addIdea(); });
+    searchInput.addEventListener('input', event => { state.search = event.target.value; renderNotes(); renderConsolidation(); });
+    categoryFilter.addEventListener('change', event => { state.selectedCategory = event.target.value; renderNotes(); renderConsolidation(); });
+    timeFilter.addEventListener('change', event => { state.timeFilter = event.target.value; renderNotes(); renderConsolidation(); });
+    sessionSelect.addEventListener('change', event => { state.activeSessionId = event.target.value; renderSessions(); renderNotes(); renderConsolidation(); });
 
     loadData();
     renderAll();
